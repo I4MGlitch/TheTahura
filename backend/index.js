@@ -1,34 +1,44 @@
-// Tools
+// Importing Dependencies
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const parser = require('body-parser');
+const bodyParser = require('body-parser'); // Renamed parser to bodyParser for clarity
+const path = require('path'); // Required for path.join
 
-// Schemas
-const berita = require('../backend/schemas/berita');
-const fauna = require('../backend/schemas/fauna');
-const flora = require('../backend/schemas/flora');
+// Importing Schemas
+const Berita = require('../backend/schemas/berita');
+const Fauna = require('../backend/schemas/fauna');
+const Flora = require('../backend/schemas/flora');
 
-// Initializing 
+// Initializing Express App
 const app = express();
 app.use(cors());
-app.use(parser.json());
-app.use(express.static('public'))
+app.use(bodyParser.json());
+app.use(express.static('public')); // Serving static files from the public directory
 
 // MongoDB Connection using Mongoose
-mongoose.connect('mongodb+srv://TAHURA:TAHURA123@tahura.cjtoycf.mongodb.net/TAHURA', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected to database: TAHURA'))
-.catch(err => console.error('MongoDB connection error:', err));
+async function connectDB() {
+  try {
+    await mongoose.connect('mongodb+srv://TAHURA:TAHURA123@tahura.cjtoycf.mongodb.net/TAHURA', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('MongoDB connected to database: TAHURA');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+  }
+}
 
+connectDB();
 
-// Define routes
+// Serve Angular App
+app.use(express.static(path.join(__dirname, '../dist/tahuraproject')));
+
+// Define Routes
 app.get('/api/getFloraDetails/:id', async (req, res) => {
   try {
     const floraId = req.params.id;
-    const floraDetails = await flora.findById(floraId).exec();
+    const floraDetails = await Flora.findById(floraId).exec();
     if (!floraDetails) {
       return res.status(404).json({ error: 'Flora not found' });
     }
@@ -42,7 +52,7 @@ app.get('/api/getFloraDetails/:id', async (req, res) => {
 app.get('/api/getFaunaDetails/:id', async (req, res) => {
   try {
     const faunaId = req.params.id;
-    const faunaDetails = await fauna.findById(faunaId).exec();
+    const faunaDetails = await Fauna.findById(faunaId).exec();
     if (!faunaDetails) {
       return res.status(404).json({ error: 'Fauna not found' });
     }
@@ -56,7 +66,7 @@ app.get('/api/getFaunaDetails/:id', async (req, res) => {
 app.get('/api/getBeritaDetails/:id', async (req, res) => {
   try {
     const beritaId = req.params.id;
-    const beritaDetails = await berita.findById(beritaId).exec();
+    const beritaDetails = await Berita.findById(beritaId).exec();
     if (!beritaDetails) {
       return res.status(404).json({ error: 'Berita not found' });
     }
@@ -69,7 +79,7 @@ app.get('/api/getBeritaDetails/:id', async (req, res) => {
 
 app.get('/api/getAllFlora', async (req, res) => {
   try {
-    const floraData = await flora.find();
+    const floraData = await Flora.find();
     res.json(floraData);
   } catch (error) {
     console.error('Error fetching flora data:', error);
@@ -79,7 +89,7 @@ app.get('/api/getAllFlora', async (req, res) => {
 
 app.get('/api/getAllFauna', async (req, res) => {
   try {
-    const faunaData = await fauna.find();
+    const faunaData = await Fauna.find();
     res.json(faunaData);
   } catch (error) {
     console.error('Error fetching fauna data:', error);
@@ -89,7 +99,7 @@ app.get('/api/getAllFauna', async (req, res) => {
 
 app.get('/api/getAllBerita', async (req, res) => {
   try {
-    const beritaData = await berita.find();
+    const beritaData = await Berita.find();
     res.json(beritaData);
   } catch (error) {
     console.error('Error fetching berita data:', error);
@@ -97,7 +107,12 @@ app.get('/api/getAllBerita', async (req, res) => {
   }
 });
 
-// Server Check
+// Handle all other routes to serve Angular app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/tahuraproject/index.html'));
+});
+
+// Server Setup
 const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
